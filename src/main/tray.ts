@@ -2,6 +2,9 @@ import { Tray, Menu, nativeImage, BrowserWindow, app, shell } from 'electron';
 import path from 'path';
 import { getServerUrl, getServerStatus } from '../core/server';
 
+// 判断是否是开发环境
+const isDev = process.env.NODE_ENV === 'development';
+
 // 创建系统托盘
 export function createTray(
   mainWindow: BrowserWindow, 
@@ -9,7 +12,9 @@ export function createTray(
   setIsQuitting: (val: boolean) => void
 ): Tray {
   // 创建托盘图标
-  const iconPath = path.join(__dirname, '../../resources/icon.svg');
+  const iconPath = isDev 
+    ? path.join(__dirname, '../../resources/icon.png')
+    : path.join(process.resourcesPath, 'resources/icon.png');
   let icon: Electron.NativeImage;
   
   try {

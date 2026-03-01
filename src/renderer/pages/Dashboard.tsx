@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Statistic, Table, Tag, Progress, Typography, Empty, InputNumber, Button, Switch, Space, message, Badge } from 'antd';
+import { Row, Col, Card, Statistic, Table, Tag, Progress, Typography, Empty, InputNumber, Button, Space, message, Badge } from 'antd';
 import {
   ThunderboltOutlined,
   ApiOutlined,
@@ -123,15 +123,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // 切换服务状态
-  const handleToggleServer = async (checked: boolean) => {
-    if (checked) {
-      await handleStartServer();
-    } else {
-      await handleStopServer();
-    }
-  };
-
   // 获取服务地址
   const serverUrl = isRunning ? `http://localhost:${inputPort}` : '';
 
@@ -207,9 +198,9 @@ const Dashboard: React.FC = () => {
       >
         <Row align="middle" gutter={24}>
           <Col>
-            <Space size="large">
-              <span>
-                <Text type="secondary" style={{ marginRight: 8 }}>端口:</Text>
+            <Space size="large" align="center">
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Text type="secondary">端口:</Text>
                 <InputNumber
                   min={1024}
                   max={65535}
@@ -219,14 +210,11 @@ const Dashboard: React.FC = () => {
                   style={{ width: 100 }}
                 />
               </span>
-              <span>
-                <Text type="secondary" style={{ marginRight: 8 }}>状态:</Text>
-                <Switch
-                  checked={isRunning}
-                  onChange={handleToggleServer}
-                  loading={starting || stopping}
-                  checkedChildren="运行中"
-                  unCheckedChildren="已停止"
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Text type="secondary">状态:</Text>
+                <Badge 
+                  status={isRunning ? 'success' : 'default'} 
+                  text={isRunning ? '运行中' : '已停止'}
                 />
               </span>
               {!isRunning && (

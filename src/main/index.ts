@@ -12,6 +12,25 @@ let isQuitting = false;
 // 判断是否是开发环境（只有在设置了 NODE_ENV=development 时才认为是开发环境）
 const isDev = process.env.NODE_ENV === 'development';
 
+// 单实例锁定
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  // 如果获取锁失败，说明已有实例在运行，直接退出
+  app.quit();
+} else {
+  // 当第二个实例启动时，聚焦已有窗口
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
+
 // 创建主窗口
 function createWindow(): BrowserWindow {
   mainWindow = new BrowserWindow({
@@ -24,7 +43,9 @@ function createWindow(): BrowserWindow {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
     },
-    icon: path.join(__dirname, '../../resources/icon.png'),
+    icon: isDev 
+      ? path.join(__dirname, '../../resources/icon.png')
+      : path.join(process.resourcesPath, 'resources/icon.png'),
     show: false, // 先隐藏，加载完成后再显示
   });
   
@@ -34,7 +55,6 @@ function createWindow(): BrowserWindow {
     mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
-    mainWindow.webContents.openDevTools(); // 开发调试
   }
   
   // 窗口准备就绪时显示

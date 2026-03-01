@@ -123,21 +123,24 @@ const App: React.FC = () => {
           <Title level={4} style={{ margin: 0 }}>
             {menuItems.find(item => item.key === currentPage)?.label}
           </Title>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
             {serverStatus && (
               <Tooltip title={`API 地址: http://localhost:${serverStatus.port}`}>
-                <Badge 
-                  status={serverStatus.isRunning ? 'success' : 'error'} 
-                  text={
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      {serverStatus.isRunning ? (
-                        <><CheckCircleOutlined style={{ color: '#52c41a' }} /> 服务运行中</>
-                      ) : (
-                        <><CloseCircleOutlined style={{ color: '#ff4d4f' }} /> 服务已停止</>
-                      )}
-                    </span>
-                  }
-                />
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  {serverStatus.isRunning ? (
+                    <>
+                      <Badge status="success" />
+                      <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                      <span>服务运行中</span>
+                    </>
+                  ) : (
+                    <>
+                      <Badge status="error" />
+                      <CloseCircleOutlined style={{ color: '#ff4d4f' }} />
+                      <span>服务已停止</span>
+                    </>
+                  )}
+                </span>
               </Tooltip>
             )}
           </div>

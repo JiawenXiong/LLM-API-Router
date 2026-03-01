@@ -1,14 +1,15 @@
 {
   "name": "llm-api-router",
   "version": "1.0.0",
-  "description": "LLM API 路由器 - 统一管理多个 LLM API 后端",
+  "description": "LLM API Router - Unified management for multiple LLM API backends",
+  "author": "LLM API Router Team",
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:main\"",
     "dev:renderer": "vite",
     "dev:main": "tsc -p tsconfig.main.json --watch",
     "copy-wasm": "node -e \"const fs=require('fs');const p=require('path');const src=p.join('node_modules','sql.js','dist','sql-wasm.wasm');const dest=p.join('dist','core');fs.mkdirSync(dest,{recursive:true});fs.copyFileSync(src,p.join(dest,'sql-wasm.wasm'));console.log('Copied sql-wasm.wasm');\"",
-    "build": "npm run build:renderer && npm run build:main && npm run copy-wasm",
+    "build": "npm run build:renderer && npm run build:main && npm run copy-wasm && npm run dist",
     "build:renderer": "vite build",
     "build:main": "tsc -p tsconfig.main.json",
     "start": "electron .",
@@ -16,53 +17,90 @@
     "dist": "electron-builder"
   },
   "dependencies": {
-    "sql.js": "^1.10.3",
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
+    "@ant-design/icons": "^5.3.0",
+    "antd": "^5.14.0",
     "axios": "^1.6.7",
-    "uuid": "^9.0.1",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.0",
-    "antd": "^5.14.0",
-    "@ant-design/icons": "^5.3.0"
+    "sql.js": "^1.10.3",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "@types/sql.js": "^1.4.9",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^20.11.16",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.18",
+    "@types/sql.js": "^1.4.9",
     "@types/uuid": "^9.0.8",
     "@vitejs/plugin-react": "^4.2.1",
     "concurrently": "^8.2.2",
     "electron": "^28.2.1",
-    "electron-builder": "^24.12.0",
+    "electron-builder": "^24.13.3",
     "typescript": "^5.3.3",
     "vite": "^5.1.0"
   },
   "build": {
     "appId": "com.llm-api-router.app",
-    "productName": "LLM API 路由器",
+    "productName": "LLM API Router",
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**/*",
-      "package.json"
+      "package.json",
+      "cli/**/*"
+    ],
+    "asar": true,
+    "electronLanguages": [
+      "zh-CN",
+      "en-US"
+    ],
+    "extraResources": [
+      {
+        "from": "resources",
+        "to": "resources",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "cli",
+        "to": "cli",
+        "filter": ["**/*"]
+      }
     ],
     "win": {
-      "target": "nsis",
-      "icon": "resources/icon.ico"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "executableName": "llm-router",
+      "sign": null,
+      "signingHashAlgorithms": []
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "resources/icon.ico",
+      "uninstallerIcon": "resources/icon.ico",
+      "installerHeaderIcon": "resources/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "LLM API Router",
+      "deleteAppDataOnUninstall": true
     },
     "mac": {
-      "target": "dmg",
-      "icon": "resources/icon.icns"
+      "target": "dmg"
     },
     "linux": {
-      "target": "AppImage",
-      "icon": "resources/icon.png"
+      "target": "AppImage"
     }
   }
 }
