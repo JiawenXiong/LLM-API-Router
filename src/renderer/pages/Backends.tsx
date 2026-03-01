@@ -7,7 +7,7 @@ import {
   PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined,
   CloseCircleOutlined, LinkOutlined, ApiOutlined, SyncOutlined,
   CheckCircleTwoTone, CloseCircleTwoTone, QuestionCircleOutlined,
-  CopyOutlined
+  CopyOutlined, DownloadOutlined, UploadOutlined
 } from '@ant-design/icons';
 import type { Backend, ApiType } from '../../core/types';
 
@@ -249,6 +249,39 @@ const Backends: React.FC = () => {
     }
   };
 
+  // 导出后端配置
+  const handleExport = async () => {
+    if (backends.length === 0) {
+      message.warning('没有后端配置可导出');
+      return;
+    }
+    try {
+      const result = await window.electronAPI.exportBackends();
+      if (result.success) {
+        message.success(result.message);
+      } else {
+        message.info(result.message);
+      }
+    } catch (error) {
+      message.error('导出失败');
+    }
+  };
+
+  // 导入后端配置
+  const handleImport = async () => {
+    try {
+      const result = await window.electronAPI.importBackends();
+      if (result.success) {
+        message.success(result.message);
+        loadBackends();
+      } else {
+        message.info(result.message);
+      }
+    } catch (error) {
+      message.error('导入失败');
+    }
+  };
+
   const columns = [
     {
       title: '名称',
@@ -371,6 +404,12 @@ const Backends: React.FC = () => {
           配置您的 LLM API 后端，支持 OpenAI 和 Anthropic 格式
         </Typography.Text>
         <Space>
+          <Button icon={<DownloadOutlined />} onClick={handleExport} disabled={backends.length === 0}>
+            导出配置
+          </Button>
+          <Button icon={<UploadOutlined />} onClick={handleImport}>
+            导入配置
+          </Button>
           <Button icon={<SyncOutlined />} onClick={handleTestAll} loading={testingIds.size > 0}>
             测试全部
           </Button>

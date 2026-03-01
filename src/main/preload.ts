@@ -34,6 +34,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // 测试后端连接
   testBackendConnection: (backend: unknown) => ipcRenderer.invoke('test-backend-connection', backend),
+  
+  // 导出/导入后端配置
+  exportBackends: () => ipcRenderer.invoke('export-backends'),
+  importBackends: () => ipcRenderer.invoke('import-backends'),
 });
 
 // TypeScript 类型定义
@@ -64,6 +68,9 @@ export interface ElectronAPI {
   savePort: (port: number) => Promise<boolean>;
   
   testBackendConnection: (backend: unknown) => Promise<{ success: boolean; message: string }>;
+  
+  exportBackends: () => Promise<{ success: boolean; message: string; count?: number }>;
+  importBackends: () => Promise<{ success: boolean; message: string; imported?: number; skipped?: number }>;
 }
 
 declare global {

@@ -1,4 +1,5 @@
-import { ipcMain } from 'electron';
+import { ipcMain, dialog } from 'electron';
+import { writeFile, readFile } from 'fs/promises';
 import {
   getAllBackends,
   getBackendById,
@@ -128,6 +129,87 @@ export function setupIpcHandlers(): void {
   
   ipcMain.handle('test-backend-connection', async (_event, backend: Backend) => {
     return testBackendConnection(backend);
+  });
+  
+  // ========== 导出/导入后端配置 ==========
+  
+  ipcMain.handle('export-backends', async () => {
+    const backends = getAllBackends();
+    // 移除敏感信息和运行时状态
+    const exportData = backends.map(b => ({
+      name: b.name,
+      baseUrl: b.baseUrl,
+      apiKey: b.apiKey,
+      model: b.model,
+      apiType: b.apiType,
+      isEnabled: b.isEnabled,
+      priority: b.priority,
+    }));
+    
+    const { filePath, canceled } = await dialog.showSaveDialog({
+      title: '导出后端配置',
+      defaultPath: 'backends.json',
+      filters: [{ name: 'JSON Files', extensions: ['json'] }],
+    });
+    
+    if (canceled || !filePath) {
+      return { success: false, message: '取消导出' };
+    }
+    
+    try {
+      await writeFile(filePath, JSON.stringify(exportData, null, 2), 'utf-8');
+      return { success: true, message: `已导出 ${exportData.length} 个后端配置`, count: exportData.length };
+    } catch (error) {
+      return { success: false, message: `导出失败: ${(error as Error).message}` };
+    }
+  });
+  
+  ipcMain.handle('import-backends', async () => {
+    const { filePaths, canceled } = await dialog.showOpenDialog({
+      title: '导入后端配置',
+      filters: [{ name: 'JSON Files', extensions: ['json'] }],
+      properties: ['openFile'],
+    });
+    
+    if (canceled || filePaths.length === 0) {
+      return { success: false, message: '取消导入' };
+    }
+    
+    try {
+      const content = await readFile(filePaths[0], 'utf-8');
+      const backends = JSON.parse(content);
+      
+      if (!Array.isArray(backends)) {
+        return { success: false, message: '无效的配置文件格式' };
+      }
+      
+      let imported = 0;
+      let skipped = 0;
+      
+      for (const b of backends) {
+        // 验证必需字段
+        if (!b.name || !b.baseUrl || !b.apiKey || !b.model || !b.apiType) {
+          skipped++;
+          continue;
+        }
+        
+        // 创建新后端配置
+        createBackend({
+          name: b.name,
+          baseUrl: b.baseUrl,
+          apiKey: b.apiKey,
+          model: b.model,
+          apiType: b.apiType,
+          isEnabled: b.isEnabled ?? true,
+          priority: b.priority ?? 0,
+        });
+        imported++;
+      }
+      
+      return { success: true, message: `成功导入 ${imported} 个后端配置${skipped > 0 ? `，跳过 ${skipped} 个无效配置` : ''}`, imported, skipped };
+    } catch (error) {
+      return { success: false, message: `导入失败: ${(error as Error).message}` };
+    }
   });
 }
 
