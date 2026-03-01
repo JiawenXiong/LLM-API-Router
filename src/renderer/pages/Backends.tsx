@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Table, Button, Modal, Form, Input, Select, Switch, InputNumber, Space,
   Tag, Popconfirm, message, Tooltip, Badge, Typography, Alert, Spin
@@ -7,9 +7,10 @@ import {
   PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined,
   CloseCircleOutlined, LinkOutlined, ApiOutlined, SyncOutlined,
   CheckCircleTwoTone, CloseCircleTwoTone, QuestionCircleOutlined,
-  CopyOutlined, DownloadOutlined, UploadOutlined
+  CopyOutlined, DownloadOutlined, UploadOutlined, SearchOutlined
 } from '@ant-design/icons';
 import type { Backend, ApiType } from '../../core/types';
+import type { TableColumnType } from 'antd';
 
 const { Text } = Typography;
 
@@ -77,6 +78,11 @@ const Backends: React.FC = () => {
   const [testLoading, setTestLoading] = useState(false);
   const [testingIds, setTestingIds] = useState<Set<string>>(new Set());
   const [form] = Form.useForm();
+  
+  // 搜索和筛选状态
+  const [searchText, setSearchText] = useState('');
+  const [filterApiType, setFilterApiType] = useState<ApiType | 'all'>('all');
+  const [filterEnabled, setFilterEnabled] = useState<'all' | boolean>('all');
   
   // 监听 API 类型变化
   const apiType = Form.useWatch('apiType', form);
@@ -282,11 +288,32 @@ const Backends: React.FC = () => {
     }
   };
 
-  const columns = [
+  // 筛选后的后端列表
+  const filteredBackends = useMemo(() => {
+    return backends.filter(backend => {
+      // 搜索过滤（名称、模型、Base URL）
+      const searchLower = searchText.toLowerCase();
+      const matchesSearch = !searchText || 
+        backend.name.toLowerCase().includes(searchLower) ||
+        backend.model.toLowerCase().includes(searchLower) ||
+        backend.baseUrl.toLowerCase().includes(searchLower);
+      
+      // API 类型过滤
+      const matchesApiType = filterApiType === 'all' || backend.apiType === filterApiType;
+      
+      // 启用状态过滤
+      const matchesEnabled = filterEnabled === 'all' || backend.isEnabled === filterEnabled;
+      
+      return matchesSearch && matchesApiType && matchesEnabled;
+    });
+  }, [backends, searchText, filterApiType, filterEnabled]);
+
+  const columns: TableColumnType<Backend>[] = [
     {
       title: '名称',
       dataIndex: 'name',
       key: 'name',
+      sorter: (a, b) => a.name.localeCompare(b.name),
       render: (name: string) => (
         <span>
           <ApiOutlined style={{ marginRight: 8 }} />
@@ -298,6 +325,7 @@ const Backends: React.FC = () => {
       title: 'API 类型',
       dataIndex: 'apiType',
       key: 'apiType',
+      sorter: (a, b) => a.apiType.localeCompare(b.apiType),
       render: (type: ApiType) => (
         <Tag color={type === 'openai' ? 'blue' : 'purple'}>
           {type === 'openai' ? 'OpenAI' : 'Anthropic'}
@@ -308,6 +336,7 @@ const Backends: React.FC = () => {
       title: 'Base URL',
       dataIndex: 'baseUrl',
       key: 'baseUrl',
+      sorter: (a, b) => a.baseUrl.localeCompare(b.baseUrl),
       ellipsis: true,
       render: (url: string) => (
         <Tooltip title={url}>
@@ -319,6 +348,7 @@ const Backends: React.FC = () => {
       title: '模型',
       dataIndex: 'model',
       key: 'model',
+      sorter: (a, b) => a.model.localeCompare(b.model),
       render: (model: string) => <Tag>{model}</Tag>,
     },
     {
@@ -326,6 +356,12 @@ const Backends: React.FC = () => {
       dataIndex: 'connectionStatus',
       key: 'connectionStatus',
       width: 100,
+      sorter: (a, b) => {
+        const order = { valid: 0, invalid: 1, unknown: 2 };
+        const aStatus = a.connectionStatus || 'unknown';
+        const bStatus = b.connectionStatus || 'unknown';
+        return order[aStatus] - order[bStatus];
+      },
       render: (status: string, record: Backend) => (
         testingIds.has(record.id) ? (
           <Spin size="small" />
@@ -338,6 +374,7 @@ const Backends: React.FC = () => {
       title: '优先级',
       dataIndex: 'priority',
       key: 'priority',
+      sorter: (a, b) => a.priority - b.priority,
       render: (priority: number) => (
         <Badge count={priority} showZero style={{ backgroundColor: '#1890ff' }} />
       ),
@@ -346,6 +383,7 @@ const Backends: React.FC = () => {
       title: '启用',
       dataIndex: 'isEnabled',
       key: 'isEnabled',
+      sorter: (a, b) => Number(a.isEnabled) - Number(b.isEnabled),
       render: (enabled: boolean, record: Backend) => (
         <Switch
           checked={enabled}
@@ -399,10 +437,38 @@ const Backends: React.FC = () => {
 
   return (
     <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-        <Typography.Text type="secondary">
-          配置您的 LLM API 后端，支持 OpenAI 和 Anthropic 格式
-        </Typography.Text>
+      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <Space wrap>
+          <Input
+            placeholder="搜索名称、模型、URL"
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+            style={{ width: 220 }}
+            allowClear
+          />
+          <Select
+            value={filterApiType}
+            onChange={setFilterApiType}
+            style={{ width: 130 }}
+          >
+            <Select.Option value="all">全部类型</Select.Option>
+            <Select.Option value="openai">OpenAI</Select.Option>
+            <Select.Option value="anthropic">Anthropic</Select.Option>
+          </Select>
+          <Select
+            value={filterEnabled}
+            onChange={setFilterEnabled}
+            style={{ width: 120 }}
+          >
+            <Select.Option value="all">全部状态</Select.Option>
+            <Select.Option value={true}>已启用</Select.Option>
+            <Select.Option value={false}>已禁用</Select.Option>
+          </Select>
+          <Typography.Text type="secondary" style={{ lineHeight: '32px' }}>
+            共 {filteredBackends.length} 条
+          </Typography.Text>
+        </Space>
         <Space>
           <Button icon={<DownloadOutlined />} onClick={handleExport} disabled={backends.length === 0}>
             导出配置
@@ -421,7 +487,7 @@ const Backends: React.FC = () => {
 
       <Table
         columns={columns}
-        dataSource={backends}
+        dataSource={filteredBackends}
         rowKey="id"
         loading={loading}
       />
